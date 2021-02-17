@@ -1360,7 +1360,8 @@ struct Event
             if (removeSuffix(name, "_entry") || rewriteName(name, "syscall_entry_", "syscall_", true)
                 || rewriteName(name, "_begin_", "_", false) || rewriteName(name, "_before_", "_", false)) {
                 return 'B';
-            } else if (removeSuffix(name, "_exit") || rewriteName(name, "syscall_exit_", "syscall_", true)
+            } else if (removeSuffix(name, "_exit")
+		       || removeSuffix(name, "_exit__return") || rewriteName(name, "syscall_exit_", "syscall_", true)
                        || rewriteName(name, "_end_", "_", false) || rewriteName(name, "_after_", "_", false)) {
                 return 'E';
             } else {
@@ -1538,6 +1539,19 @@ struct Event
                 category = prefix;
                 break;
             }
+        }
+
+        const struct bt_definition *vpid_field = bt_ctf_get_field(event, event_fields_scope, "perf_pid");
+        const struct bt_definition *vtid_field = bt_ctf_get_field(event, event_fields_scope, "perf_tid");
+        if (vpid_field)
+                pid = bt_ctf_get_int64(vpid_field);
+        if (vtid_field)
+                tid = bt_ctf_get_int64(vtid_field);
+
+        if ( startsWith(name, "probe:") || startsWith(name, "probe_")) {
+                auto colonPos = name.find(':');
+                if (colonPos != name.npos)
+                      name = name.substr(colonPos+1, name.npos);
         }
 
         if (category.empty()) {
